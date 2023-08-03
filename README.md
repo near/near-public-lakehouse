@@ -16,14 +16,19 @@ NEAR is a user-friendly, carbon-neutral blockchain, built from the ground up to 
 # Data Available
 The current data that we are providing was inspired by [near-indexer-for-explorer](https://github.com/near/near-indexer-for-explorer/). 
 We plan to improve the data available in the NEAR Public Lakehouse making it easier to consume by denormalizing some tables. 
-Current tables available in the NEAR Public Lakehouse:
-- blocks: A structure that represents an entire block in the NEAR blockchain.
-- chunks: Chunk is a fraction of each block produced as a result of sharding in the NEAR protocol.
-- transactions: A transaction in Near is a list of actions and additional information.
-- receitps: All cross-contract (we assume that each account lives in its own shard) communication in Near happens through Receipts. Receipts are stateful in a sense that they serve not only as messages between accounts but also can be stored in the account storage to await DataReceipts.
-- account_changes: Each account has an associated state where it stores its metadata and all the contract-related data (contract's code + storage).
 
-References:
+The tables available in the NEAR Public Lakehouse are:
+- **blocks**: A structure that represents an entire block in the NEAR blockchain.
+- **chunks**: Chunk is a fraction of each block produced as a result of sharding in the NEAR protocol.
+- **transactions**: A transaction in Near is a list of actions and additional information.
+- **receitps**: All cross-contract (we assume that each account lives in its own shard) communication in Near happens through Receipts. Receipts are stateful in a sense that they serve not only as messages between accounts but also can be stored in the account storage to await DataReceipts.
+- **account_changes**: Each account has an associated state where it stores its metadata and all the contract-related data (contract's code + storage).
+
+# Examples
+- Queries **TODO**
+- Notebooks **TODO**
+
+# References
 - https://nomicon.io/
 - https://docs.near.org/concepts/basics/protocol
 - https://github.com/near/near-lake-indexer
