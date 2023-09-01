@@ -29,7 +29,7 @@ The tables available in the NEAR Public Lakehouse are:
 - **receipt_details**: All cross-contract (we assume that each account lives in its own shard) communication in Near happens through Receipts. Receipts are stateful in a sense that they serve not only as messages between accounts but also can be stored in the account storage to await DataReceipts. Each receipt has a predecessor_id (who sent it) and receiver_id the current account.
 - **receipt_origin**: Tracks the transaction that originated the receipt.
 - **receipt_actions**: Action Receipt represents a request to apply actions on the receiver_id side. It could be derived as a result of a Transaction execution or another ACTION Receipt processing. Action kind can be: ADD_KEY, CREATE_ACCOUNT, DELEGATE_ACTION, DELETE_ACCOUNT, DELETE_KEY, DEPLOY_CONTRACT, FUNCTION_CALL, STAKE, TRANSFER.
-- **receipts (view)**: It's recomended to select only the columns and partitions (block_date) needed to avoid unecessary query costs. This view join the receipt details, the transaction that originated the receipt and the receipt execution outcome.
+- **receipts (view)**: It's recommended to select only the columns and partitions (block_date) needed to avoid unnecessary query costs. This view join the receipt details, the transaction that originated the receipt and the receipt execution outcome.
 - **account_changes**: Each account has an associated state where it stores its metadata and all the contract-related data (contract's code + storage).
 
 # Examples
@@ -61,7 +61,9 @@ ORDER BY 1 DESC;
 - NEAR pays for the storage and doesn't charge you to use the public dataset. To learn more about BigQuery public datasets check this [page](https://cloud.google.com/bigquery/public-data).
 - Google GCP charges for the queries that you perform on the data. For example, in today's price "Sep 1st, 2023" the On-demand (per TB) query pricing is $6.25 per TB where the first 1 TB per month is free. Please check the official Google's page for detailed pricing info, options, and best practices [here](https://cloud.google.com/bigquery/pricing#analysis_pricing_models).
 
-**Note:** You can check how much data it will query before running it in the BigQuery console UI. Again, since BigQuery uses a columnar data structure and partitions, it's recomended to select only the columns and partitions (block_date) needed to avoid unecessary query costs.
+**Note:** You can check how much data it will query before running it in the BigQuery console UI. Again, since BigQuery uses a columnar data structure and partitions, it's recommended to select only the columns and partitions (block_date) needed to avoid unnecessary query costs.
+
+![Query Costs](./docs/BQ_Query_Cost.png "BQ Query Costs")
 
 # References
 
