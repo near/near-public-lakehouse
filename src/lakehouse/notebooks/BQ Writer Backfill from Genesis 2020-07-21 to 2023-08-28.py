@@ -1,23 +1,15 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # BQ Writer Stream
+# MAGIC # BQ Writer Backfill from Genesis 2020-07-21 to 2023-08-28
 
 # COMMAND ----------
 
-def create_stream_temp_view(view_name, source_table_name, source_filter):
-    return spark.readStream \
-    .format("delta") \
-    .option("skipChangeCommits", "true") \
-    .table(source_table_name) \
-    .where(source_filter) \
-    .createOrReplaceTempView(view_name)
+def bq_writer_backfill(table_name, sql):
+    df = spark.sql(sql)
 
-# COMMAND ----------
-
-def bq_writer_stream(table_name, df_stream):
-    return df_stream.writeStream \
+    df.write \
         .format("bigquery") \
-        .option("temporaryGcsBucket", "databricks-bq-buffer-near-lakehouse") \
+        .option("temporaryGcsBucket", 'databricks-bq-buffer-near-lakehouse') \
         .option("table", f"pagoda-data-platform.crypto_near_mainnet.{table_name}") \
         .option("createDisposition", "CREATE_IF_NEEDED") \
         .option("partitionField", "block_date") \
@@ -25,35 +17,30 @@ def bq_writer_stream(table_name, df_stream):
         .option("allowFieldAddition", "true") \
         .option("allowFieldRelaxation", "true") \
         .option("writeMethod", "indirect") \
-        .option("checkpointLocation", f"/pipelines/checkpoints/bc_{table_name}") \
-        .start()
+        .mode("append").save()  
 
 # COMMAND ----------
 
-create_stream_temp_view("tmp_vw_blocks", "hive_metastore.mainnet.silver_blocks", "block_date >= '2023-08-29'")
-
-df_stream_blocks = spark.sql("""
-        select 
+sql = """
+        SELECT 
             block_date, 
             block_height, 
             block_timestamp, 
             block_timestamp_utc, 
             block_hash, 
             prev_block_hash, 
-            CAST(total_supply AS DOUBLE) as total_supply, 
-            CAST(gas_price AS DOUBLE) as gas_price, 
+            CAST(total_supply AS DOUBLE) AS total_supply, 
+            CAST(gas_price AS DOUBLE) AS gas_price, 
             author_account_id 
-        from tmp_vw_blocks
-    """)
-
-bq_writer_stream("blocks", df_stream_blocks)
+        FROM hive_metastore.mainnet.silver_blocks 
+        WHERE block_date >= '2020-01-01' AND  block_date <= '2023-08-28'
+    """
+bq_writer_backfill("blocks", sql)
 
 # COMMAND ----------
 
-create_stream_temp_view("tmp_vw_transactions", "hive_metastore.mainnet.silver_transactions", "block_date >= '2023-08-29'")
-
-df_stream_transactions = spark.sql("""
-        select 
+sql = """
+        SELECT 
             block_date, 
             block_height, 
             block_timestamp, 
@@ -72,17 +59,16 @@ df_stream_transactions = spark.sql("""
             converted_into_receipt_id, 
             receipt_conversion_gas_burnt, 
             CAST(receipt_conversion_tokens_burnt AS DOUBLE) AS receipt_conversion_tokens_burnt 
-        from tmp_vw_transactions
-    """)
+        FROM hive_metastore.mainnet.silver_transactions 
+        WHERE block_date >= '2020-01-01' AND  block_date <= '2023-08-28'
+    """
+bq_writer_backfill("transactions", sql)
 
-bq_writer_stream("transactions", df_stream_transactions)
 
 # COMMAND ----------
 
-create_stream_temp_view("tmp_vw_receipt_details", "hive_metastore.mainnet.silver_receipts", "block_date >= '2023-08-29'")
-
-df_stream_receipt_details = spark.sql("""
-        select 
+sql = """
+        SELECT 
             block_date, 
             block_height, 
             block_timestamp, 
@@ -97,17 +83,16 @@ df_stream_receipt_details = spark.sql("""
             predecessor_account_id, 
             receiver_account_id, 
             receipt 
-        from tmp_vw_receipt_details
-    """)
+        FROM hive_metastore.mainnet.silver_receipts 
+        WHERE block_date >= '2020-01-01' AND  block_date <= '2023-08-28'
+    """
 
-bq_writer_stream("receipt_details", df_stream_receipt_details)
+bq_writer_backfill("receipt_details", sql)
 
 # COMMAND ----------
 
-create_stream_temp_view("tmp_vw_receipt_actions", "hive_metastore.mainnet.silver_action_receipt_actions", "block_date >= '2023-08-29'")
-
-df_stream_receipt_actions = spark.sql("""
-        select 
+sql = """
+        SELECT 
             block_date, 
             block_height, 
             block_timestamp, 
@@ -122,17 +107,16 @@ df_stream_receipt_actions = spark.sql("""
             action_kind, 
             receipt_receiver_account_id, 
             is_delegate_action 
-        from tmp_vw_receipt_actions
-    """)
+        FROM hive_metastore.mainnet.silver_action_receipt_actions 
+        WHERE block_date >= '2020-01-01' AND  block_date <= '2023-08-28'
+    """
 
-bq_writer_stream("receipt_actions", df_stream_receipt_actions)
+bq_writer_backfill("receipt_actions", sql)
 
 # COMMAND ----------
 
-create_stream_temp_view("tmp_vw_account_changes", "hive_metastore.mainnet.silver_account_changes", "block_date >= '2023-08-29'")
-
-df_stream_account_changes = spark.sql("""
-        select 
+sql = """
+        SELECT 
             block_date, 
             block_height, 
             block_timestamp, 
@@ -147,17 +131,16 @@ df_stream_account_changes = spark.sql("""
             CAST(affected_account_nonstaked_balance AS DOUBLE) AS affected_account_nonstaked_balance, 
             CAST(affected_account_staked_balance AS DOUBLE) AS affected_account_staked_balance, 
             CAST(affected_account_storage_usage AS DOUBLE) AS affected_account_storage_usage 
-        from tmp_vw_account_changes
-    """)
+        FROM hive_metastore.mainnet.silver_account_changes 
+        WHERE block_date >= '2020-01-01' AND  block_date <= '2023-08-28'
+    """
 
-bq_writer_stream("account_changes", df_stream_account_changes)
+bq_writer_backfill("account_changes", sql)
 
 # COMMAND ----------
 
-create_stream_temp_view("tmp_vw_execution_outcomes", "hive_metastore.mainnet.silver_execution_outcomes", "block_date >= '2023-08-29'")
-
-df_stream_execution_outcomes = spark.sql("""
-        select 
+sql = """
+        SELECT 
             block_date, 
             block_height, 
             block_timestamp, 
@@ -173,27 +156,35 @@ df_stream_execution_outcomes = spark.sql("""
             CAST(tokens_burnt AS DOUBLE) AS tokens_burnt, 
             executor_account_id, 
             status 
-        from tmp_vw_execution_outcomes
-    """)
+        FROM hive_metastore.mainnet.silver_execution_outcomes 
+        WHERE block_date >= '2020-01-01' AND  block_date <= '2023-08-28'
+    """
 
-bq_writer_stream("execution_outcomes", df_stream_execution_outcomes)
+bq_writer_backfill("execution_outcomes", sql)
 
 # COMMAND ----------
 
-create_stream_temp_view("tmp_vw_receipt_origin", "hive_metastore.mainnet.silver_receipt_originated_from_transaction", "originated_from_transaction_hash IS NOT NULL")
-
-df_stream_receipt_origin = spark.sql("""
-        select 
+sql = """
+        SELECT 
             block_date, 
             block_height, 
-            receipt_id, 
-            data_id, 
-            receipt_kind, 
-            originated_from_transaction_hash 
-        from tmp_vw_receipt_origin
-    """)
+            block_timestamp, 
+            block_timestamp_utc, 
+            block_hash, 
+            chunk_hash, 
+            shard_id, 
+            signature, 
+            CAST(gas_limit AS DOUBLE) AS gas_limit, 
+            CAST(gas_used AS DOUBLE) AS gas_used, 
+            author_account_id 
+        FROM hive_metastore.mainnet.silver_chunks 
+    """
 
-bq_writer_stream("receipt_origin", df_stream_receipt_origin)
+bq_writer_backfill("chunks", f"{sql} WHERE block_date >= '2020-01-01' AND  block_date <= '2020-12-31'")
+bq_writer_backfill("chunks", f"{sql} WHERE block_date >= '2021-01-01' AND  block_date <= '2021-12-31'")
+bq_writer_backfill("chunks", f"{sql} WHERE block_date >= '2022-01-01' AND  block_date <= '2022-06-30'")
+bq_writer_backfill("chunks", f"{sql} WHERE block_date >= '2022-07-01' AND  block_date <= '2022-12-31'")
+bq_writer_backfill("chunks", f"{sql} WHERE block_date >= '2023-01-01' AND  block_date <= '2023-08-28'")
 
 # COMMAND ----------
 
