@@ -60,13 +60,21 @@ ORDER BY 1 DESC;
 
 - NEAR pays for the storage and doesn't charge you to use the public dataset. To learn more about BigQuery public datasets check this [page](https://cloud.google.com/bigquery/public-data).
 - Google GCP charges for the queries that you perform on the data. For example, in today's price "Sep 1st, 2023" the On-demand (per TB) query pricing is $6.25 per TB where the first 1 TB per month is free. Please check the official Google's page for detailed pricing info, options, and best practices [here](https://cloud.google.com/bigquery/pricing#analysis_pricing_models).
-  Note: You can check how much data it will query before running it in the BigQuery console UI. Again, since BigQuery uses a columnar data structure and partitions, it's recomended to select only the columns and partitions (block_date) needed to avoid unecessary query costs.
+
+**Note:** You can check how much data it will query before running it in the BigQuery console UI. Again, since BigQuery uses a columnar data structure and partitions, it's recomended to select only the columns and partitions (block_date) needed to avoid unecessary query costs.
 
 # References
 
-- https://nomicon.io/
-- https://docs.near.org/concepts/basics/protocol
-- https://github.com/near/near-lake-indexer
-- https://github.com/near/near-indexer-for-explorer/
+- https://cloud.google.com/bigquery/public-data
+- https://cloud.google.com/bigquery/pricing#analysis_pricing_models
+
 - https://docs.gcp.databricks.com/ingestion/auto-loader/index.html
 - https://www.databricks.com/product/delta-live-tables
+
+- https://docs.near.org/concepts/basics/protocol
+- https://docs.near.org/concepts/data-flow/near-data-flow
+- https://near-indexers.io/docs/data-flow-and-structures/structures/transaction#actionview
+- https://nomicon.io/RuntimeSpec/Receipts
+- https://nomicon.io/
+- https://github.com/near/near-lake-indexer
+- https://github.com/near/near-indexer-for-explorer/
