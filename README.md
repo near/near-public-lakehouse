@@ -6,6 +6,17 @@ This repository contains the source code for ingesting NEAR Protocol data stored
 
 The silver tables are also copied into the GCP BigQuery Public Dataset.
 
+# Intro
+Blockchain data indexing in NEAR Public Lakehouse is for anyone who wants to make sense of blockchain data. This includes:
+- **Users**: create queries to track NEAR assets, monitor transactions, or analyze onchain events at massive scale.
+- **Researchers**: use indexed data for data science tasks including onchain activities, identifying trends, or feed AI/ML pipelines for predective analysis.
+- **Startups**: can use NEAR's indexed data for deep insights on user engagement, smart contract utilization, or insights across tokens and NFT adoption.
+
+Benefits:
+- **NEAR instant insights**: Historical onchain data queried at scale.
+- **Cost-effective**: eliminate the need to store and process bulk NEAR protocol data; query as little or as much data as preferred.
+- **Easy to use**: no prior experience with blockchain technology required; bring a general knowledge of SQL to unlock insights.
+
 # Architecture
 
 ![Architecture](./docs/Architecture.png "Architecture")
