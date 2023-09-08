@@ -155,7 +155,8 @@ sql = """
             CAST(gas_burnt AS DOUBLE) AS gas_burnt, 
             CAST(tokens_burnt AS DOUBLE) AS tokens_burnt, 
             executor_account_id, 
-            status 
+            status ,
+            logs 
         FROM hive_metastore.mainnet.silver_execution_outcomes 
         WHERE block_date >= '2020-01-01' AND  block_date <= '2023-08-28'
     """

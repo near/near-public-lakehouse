@@ -172,7 +172,8 @@ df_stream_execution_outcomes = spark.sql("""
             CAST(gas_burnt AS DOUBLE) AS gas_burnt, 
             CAST(tokens_burnt AS DOUBLE) AS tokens_burnt, 
             executor_account_id, 
-            status 
+            status, 
+            logs
         from tmp_vw_execution_outcomes
     """)
 
