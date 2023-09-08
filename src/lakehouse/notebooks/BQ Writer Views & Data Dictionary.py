@@ -136,6 +136,7 @@ sql = (
         'ALTER COLUMN gas_burnt SET OPTIONS (description = \'The amount of the gas burnt by the given transaction or receipt\'),'
         'ALTER COLUMN tokens_burnt SET OPTIONS (description = \'The amount of tokens burnt corresponding to the burnt gas amount. This value does not always equal to the `gas_burnt` multiplied by the gas price, because the prepaid gas price might be lower than the actual gas price and it creates a deficit\'),'
         'ALTER COLUMN executor_account_id SET OPTIONS (description = \'The id of the account on which the execution happens. For transaction this is signer_id, for receipt this is receiver_id\'),'
+        'ALTER COLUMN logs SET OPTIONS (description = \'Execution outcome logs\'),'
         'ALTER COLUMN status SET OPTIONS (description = \'Execution status. Contains the result in case of successful execution\')'
     )
 query_job = bq_client.query(sql)  
@@ -230,7 +231,7 @@ dataset_ref = bigquery.DatasetReference(project_id, "crypto_near_mainnet")
 table_ref = dataset_ref.table('receipt_actions')
 table = bq_client.get_table(table_ref)
 
-table.description = "Tracks the transaction that originated the receipt"
+table.description = "Action Receipt represents a request to apply actions on the receiver_id side. It could be derived as a result of a Transaction execution or another ACTION Receipt processing. Action kind can be: ADD_KEY, CREATE_ACCOUNT, DELEGATE_ACTION, DELETE_ACCOUNT, DELETE_KEY, DEPLOY_CONTRACT, FUNCTION_CALL, STAKE, TRANSFER"
 bq_client.update_table(table, ["description"])
 
 sql = (
