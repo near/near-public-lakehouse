@@ -198,4 +198,34 @@ bq_writer_stream("receipt_origin", df_stream_receipt_origin)
 
 # COMMAND ----------
 
+create_stream_temp_view("tmp_vw_near_social_txs", "hive_metastore.mainnet.silver_near_social_txs_parsed", "block_date >= '2023-10-10'")
+
+df_stream_near_social = spark.sql("""
+        select 
+            block_height,
+            block_timestamp_utc,
+            block_date,
+            signer_id,
+            true_signer_id,
+            predecessor_id,
+            receipt_id,
+            contract_id,
+            method_name,
+            deposit,
+            gas,
+            account_object,
+            widget, 
+            post, 
+            profile, 
+            graph, 
+            settings,
+            badge, 
+            index
+        from tmp_vw_near_social_txs
+    """)
+
+bq_writer_stream("near_social_transactions", df_stream_near_social)
+
+# COMMAND ----------
+
 
