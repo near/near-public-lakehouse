@@ -319,4 +319,39 @@ print(query_job.result())
 
 # COMMAND ----------
 
+# near_social
+dataset_ref = bigquery.DatasetReference(project_id, "crypto_near_mainnet")
+table_ref = dataset_ref.table('near_social_transactions')
+table = bq_client.get_table(table_ref)
+
+table.description = "NEAR Social transactions for posts, comments, likes, widgets, profiles, followers, etc."
+bq_client.update_table(table, ["description"])
+
+sql = (
+        f'ALTER TABLE `{project_id}.crypto_near_mainnet.near_social_transactions` '
+        'ALTER COLUMN block_date SET OPTIONS (description = \'The date of the Block. Used to partition the table\'), '
+        'ALTER COLUMN block_height SET OPTIONS (description = \'The height of the Block\'),'
+        'ALTER COLUMN block_timestamp_utc SET OPTIONS (description = \'The timestamp of the Block in UTC\'),'
+        'ALTER COLUMN signer_id SET OPTIONS (description = \'An account on which behalf the origin transaction is signed\'),'
+        'ALTER COLUMN true_signer_id SET OPTIONS (description = \'An account on which behalf the origin transaction is signed in case of action being delegated to relayer\'),'
+        'ALTER COLUMN predecessor_id SET OPTIONS (description = \'The account ID which issued a receipt. In case of a gas or deposit refund, the account ID is system\'),'
+        'ALTER COLUMN receipt_id SET OPTIONS (description = \'An unique id for the receipt\'),'
+        'ALTER COLUMN contract_id SET OPTIONS (description = \'The contract ID\'),'
+        'ALTER COLUMN method_name SET OPTIONS (description = \'The method name\'),'
+        'ALTER COLUMN method_name SET OPTIONS (description = \'The deposit amount\'),'
+        'ALTER COLUMN method_name SET OPTIONS (description = \'The gas fee\'),'
+        'ALTER COLUMN account_object SET OPTIONS (description = \'The account object\'),'
+        'ALTER COLUMN account_object SET OPTIONS (description = \'The account object edit widget\'),'
+        'ALTER COLUMN account_object SET OPTIONS (description = \'The account object post or comment\'),'
+        'ALTER COLUMN account_object SET OPTIONS (description = \'The account object edit profile\'),'
+        'ALTER COLUMN graph SET OPTIONS (description = \'The account object graph follow or hide\'),'
+        'ALTER COLUMN settings SET OPTIONS (description = \'The account object settings\'),'
+        'ALTER COLUMN badge SET OPTIONS (description = \'The account object badge\'),'
+        'ALTER COLUMN index SET OPTIONS (description = \'The account object index like, follow, poke, comment, post, notify\')'
+    )
+query_job = bq_client.query(sql)  
+query_job.result()
+
+# COMMAND ----------
+
 

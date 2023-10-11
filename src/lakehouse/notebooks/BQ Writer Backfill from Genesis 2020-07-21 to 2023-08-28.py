@@ -189,4 +189,33 @@ bq_writer_backfill("chunks", f"{sql} WHERE block_date >= '2023-01-01' AND  block
 
 # COMMAND ----------
 
+sql = """
+        SELECT 
+            block_height,
+            block_timestamp_utc,
+            block_date,
+            signer_id,
+            true_signer_id,
+            predecessor_id,
+            receipt_id,
+            contract_id,
+            method_name,
+            deposit,
+            gas,
+            account_object,
+            widget, 
+            post, 
+            profile, 
+            graph, 
+            settings,
+            badge, 
+            index
+        FROM hive_metastore.mainnet.silver_near_social_txs_parsed 
+        WHERE block_date >= '2020-01-01' AND  block_date <= '2023-10-09'
+    """
+
+bq_writer_backfill("near_social_transactions", sql)
+
+# COMMAND ----------
+
 
