@@ -8,4 +8,5 @@ RUN cargo build -p lockups --release
 FROM ubuntu:22.04
 RUN apt update && apt install -yy openssl ca-certificates && apt install libssl-dev
 COPY --from=builder /tmp/target/release/lockups .
+EXPOSE 8080
 ENTRYPOINT [ "./lockups" ]
