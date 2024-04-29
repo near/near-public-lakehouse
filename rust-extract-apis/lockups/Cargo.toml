@@ -1,0 +1,29 @@
+[package]
+name = "lockups"
+rust-version = "1.64"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix-web = "4.5.1"
+actix-cors = "0.7.0"
+actix = "0.13.0"
+anyhow = "1.0.51"
+bigdecimal = "=0.1.0"
+base64 = "0.11"
+chrono = "0.4.19"
+dotenv = "0.15.0"
+# syn version conflict, replace with crates.io version once released
+near-sdk = { git = "https://github.com/near/near-sdk-rs", rev="03487c184d37b0382dd9bd41c57466acad58fc1f" }
+tokio = { version = "1.1", features = ["sync", "time"] }
+tracing = "0.1.13"
+tracing-stackdriver = "0.7.2" # GCP logs
+tracing-subscriber = "0.3.15"
+uint = { version = "0.8.3", default-features = false }
+
+near-indexer-primitives = "0.17.0"
+near-jsonrpc-client = "0.6.0"
+near-jsonrpc-primitives = "0.17.0"
+
