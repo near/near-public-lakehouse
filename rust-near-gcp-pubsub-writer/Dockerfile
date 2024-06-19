@@ -8,4 +8,3 @@ RUN cargo build -p near-gcp-pubsub-writer --release
 FROM ubuntu:22.04
 RUN apt update && apt install -yy openssl ca-certificates && apt install libssl-dev
 COPY --from=builder /tmp/target/release/near-gcp-pubsub-writer .
-ENTRYPOINT [ "./near-gcp-pubsub-writer" ]
