@@ -32,7 +32,7 @@ async fn main() -> Result<(), tokio::io::Error> {
 
     
     let pub_sub_config = ClientConfig::default().with_auth().await.unwrap();
-    let client = Client::new(pub_sub_config).await.unwrap();
+    let client = Client::new(pub_sub_config).await.expect("Failed to create GCP PubSub client");
     let topic = client.topic(&gcp_pubsub_topic);
     let publisher = topic.new_publisher(None);
 
@@ -58,7 +58,7 @@ async fn handle_streamer_message(
 
     let awaiter = publisher.publish(msg).await;
 
-    let _ = awaiter.get().await;
+    awaiter.get().await.expect("Failed to publish message");
 
     eprintln!(
         "{}",
