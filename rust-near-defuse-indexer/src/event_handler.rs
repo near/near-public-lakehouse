@@ -53,6 +53,7 @@ fn parse_event(
                     block_height: header.height,
                     block_timestamp: header.timestamp,
                     block_hash: header.hash.to_string(),
+                    contract_id: outcome.execution_outcome.outcome.executor_id.to_string(),
                     execution_status: parse_status(outcome.execution_outcome.outcome.status.clone()),
                     version: event.version,
                     standard: event.standard,
