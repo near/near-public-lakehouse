@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS events
     ORDER BY (block_height, related_receipt_id);
 
 
-CREATE TABLE IF NOT EXISTS decoded_mints
+CREATE TABLE IF NOT EXISTS mt_mints
     (
         block_height                     UInt64 COMMENT 'The height of the block',
         block_timestamp                  DateTime64(9, 'UTC') COMMENT 'The timestamp of the block in UTC',
@@ -129,7 +129,7 @@ CREATE TABLE IF NOT EXISTS decoded_mints
     PRIMARY KEY (block_height, related_receipt_id)
     ORDER BY (block_height, related_receipt_id);
 
-CREATE MATERIALIZED VIEW mv_decoded_mints TO decoded_mints AS
+CREATE MATERIALIZED VIEW mv_decoded_mints TO mt_mints AS
     WITH decoded_events AS (
         SELECT
             block_height
