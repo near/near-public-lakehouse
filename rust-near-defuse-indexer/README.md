@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS events
         related_receipt_id               String COMMENT 'The execution outcome receipt ID',
         related_receipt_receiver_id      String COMMENT 'The destination account ID',
         related_receipt_predecessor_id   String COMMENT 'The account ID which issued a receipt. In case of a gas or deposit refund, the account ID is system',
-        
+
         INDEX            block_timestamp_minmax_idx block_timestamp TYPE minmax GRANULARITY 1,
         INDEX            contract_id_bloom_index contract_id TYPE bloom_filter() GRANULARITY 1,
         INDEX            related_receipt_id_bloom_index related_receipt_id TYPE bloom_filter() GRANULARITY 1,
@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS events
     ORDER BY (block_height, related_receipt_id);
 
 
-CREATE TABLE IF NOT EXISTS mt_mints
+CREATE TABLE IF NOT EXISTS nep_245_events
     (
         block_height                     UInt64 COMMENT 'The height of the block',
         block_timestamp                  DateTime64(9, 'UTC') COMMENT 'The timestamp of the block in UTC',
@@ -129,33 +129,33 @@ CREATE TABLE IF NOT EXISTS mt_mints
     PRIMARY KEY (block_height, related_receipt_id)
     ORDER BY (block_height, related_receipt_id);
 
-CREATE MATERIALIZED VIEW mv_decoded_mints TO mt_mints AS
-    WITH decoded_events AS (
-        SELECT
-            block_height
-            , block_timestamp
-            , block_hash
-            , contract_id
-            , execution_status
-            , version
-            , standard
-            , event
-            , related_receipt_id
-            , related_receipt_predecessor_id
-            , related_receipt_receiver_id
-            , arrayJoin(JSONExtractArrayRaw(data)) data_row
-        FROM events
-        WHERE contract_id in ('defuse-alpha.near', 'intents.near')
-    )
+CREATE MATERIALIZED VIEW mv_nep_245_events TO nep_245_events AS
+WITH decoded_events AS (
     SELECT
-        *  EXCEPT (data_row)
-        , COALESCE(JSON_VALUE(data_row, '$.memo'), '') memo
-        , JSON_VALUE(data_row, '$.owner_id') old_owner_id
-        , JSON_VALUE(data_row, '$.owner_id') new_owner_id
-        , JSON_VALUE(data_row, '$.token_ids[*]') token_ids
-        , JSON_VALUE(data_row, '$.amounts[*]') amounts
-    FROM decoded_events
-    WHERE event != 'mt_transfer' AND standard = 'nep245'
-    settings function_json_value_return_type_allow_nullable=true;
+        block_height
+        , block_timestamp
+        , block_hash
+        , contract_id
+        , execution_status
+        , version
+        , standard
+        , event
+        , related_receipt_id
+        , related_receipt_predecessor_id
+        , related_receipt_receiver_id
+        , arrayJoin(JSONExtractArrayRaw(data)) data_row
+    FROM events
+    WHERE contract_id in ('defuse-alpha.near', 'intents.near')
+)
+SELECT
+    *  EXCEPT (data_row)
+    , COALESCE(JSON_VALUE(data_row, '$.memo'), '') memo
+    , if( event = 'mt_transfer', JSON_VALUE(data_row, '$.old_owner_id'), JSON_VALUE(data_row, '$.owner_id')) old_owner_id
+    , if( event = 'mt_transfer', JSON_VALUE(data_row, '$.new_owner_id'), JSON_VALUE(data_row, '$.owner_id')) new_owner_id
+    , JSON_VALUE(data_row, '$.token_ids[*]') token_ids
+    , JSON_VALUE(data_row, '$.amounts[*]') amounts
+FROM decoded_events
+WHERE standard = 'nep245'
+settings function_json_value_return_type_allow_nullable=true;
 
 ```
