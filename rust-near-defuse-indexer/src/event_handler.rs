@@ -45,10 +45,12 @@ fn parse_event(
     header: &near_indexer_primitives::views::BlockHeaderView,
 ) -> Option<EventRow> {
     let log_trimmed = log.trim();
+    println!("Block: {}", header.height);
+
     if log_trimmed.starts_with(EVENT_JSON_PREFIX) {
         if let Ok(event) = from_str::<EventJson>(&log_trimmed[EVENT_JSON_PREFIX.len()..]) {
             if ["dip4", "nep245"].contains(&event.standard.as_str()) {
-                println!("Block {} contains {}", header.height, log_trimmed);
+                println!("Event: {}", log_trimmed);
                 return Some(EventRow {
                     block_height: header.height,
                     block_timestamp: header.timestamp,
