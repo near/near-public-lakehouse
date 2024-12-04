@@ -19,6 +19,8 @@ pub async fn handle_stream(config: LakeConfig, client: Client) {
 }
 
 async fn handle_streamer_message(message: StreamerMessage, client: &Client) {
+    println!("Block: {}", message.block.header.height);
+
     let rows: Vec<EventRow> = message
         .shards
         .iter()
@@ -45,7 +47,6 @@ fn parse_event(
     header: &near_indexer_primitives::views::BlockHeaderView,
 ) -> Option<EventRow> {
     let log_trimmed = log.trim();
-    println!("Block: {}", header.height);
 
     if log_trimmed.starts_with(EVENT_JSON_PREFIX) {
         if let Ok(event) = from_str::<EventJson>(&log_trimmed[EVENT_JSON_PREFIX.len()..]) {
