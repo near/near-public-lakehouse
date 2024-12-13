@@ -19,6 +19,8 @@ pub async fn handle_stream(config: LakeConfig, client: Client) {
 }
 
 async fn handle_streamer_message(message: StreamerMessage, client: &Client) {
+    println!("Block: {}", message.block.header.height);
+
     let rows: Vec<EventRow> = message
         .shards
         .iter()
@@ -45,14 +47,16 @@ fn parse_event(
     header: &near_indexer_primitives::views::BlockHeaderView,
 ) -> Option<EventRow> {
     let log_trimmed = log.trim();
+
     if log_trimmed.starts_with(EVENT_JSON_PREFIX) {
         if let Ok(event) = from_str::<EventJson>(&log_trimmed[EVENT_JSON_PREFIX.len()..]) {
             if ["dip4", "nep245"].contains(&event.standard.as_str()) {
-                println!("Block {} contains {}", header.height, log_trimmed);
+                println!("Event: {}", log_trimmed);
                 return Some(EventRow {
                     block_height: header.height,
                     block_timestamp: header.timestamp,
                     block_hash: header.hash.to_string(),
+                    contract_id: outcome.execution_outcome.outcome.executor_id.to_string(),
                     execution_status: parse_status(outcome.execution_outcome.outcome.status.clone()),
                     version: event.version,
                     standard: event.standard,

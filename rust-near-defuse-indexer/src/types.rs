@@ -7,6 +7,7 @@ pub struct EventRow {
     pub block_height: u64,
     pub block_timestamp: u64,
     pub block_hash: String,
+    pub contract_id: String,
     pub execution_status: String,
     pub version: String,
     pub standard: String,
