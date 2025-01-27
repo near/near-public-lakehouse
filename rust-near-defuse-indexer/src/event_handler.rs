@@ -31,7 +31,8 @@ async fn handle_streamer_message(message: StreamerMessage, client: &Client) {
                     .outcome
                     .logs
                     .iter()
-                    .filter_map(|log| parse_event(log, outcome, &message.block.header))
+                    .enumerate()
+                    .filter_map(|(index_in_log, log)| parse_event(index_in_log, log, outcome, &message.block.header))
             })
         })
         .collect();
@@ -42,6 +43,7 @@ async fn handle_streamer_message(message: StreamerMessage, client: &Client) {
 }
 
 fn parse_event(
+    index_in_log: usize,
     log: &str,
     outcome: &near_indexer_primitives::IndexerExecutionOutcomeWithReceipt,
     header: &near_indexer_primitives::views::BlockHeaderView,
@@ -50,7 +52,7 @@ fn parse_event(
 
     if log_trimmed.starts_with(EVENT_JSON_PREFIX) {
         if let Ok(event) = from_str::<EventJson>(&log_trimmed[EVENT_JSON_PREFIX.len()..]) {
-            if ["dip4", "nep245"].contains(&event.standard.as_str()) {
+            if log_trimmed.contains("dip4") || log_trimmed.contains("nep245") {
                 println!("Event: {}", log_trimmed);
                 return Some(EventRow {
                     block_height: header.height,
@@ -60,8 +62,9 @@ fn parse_event(
                     execution_status: parse_status(outcome.execution_outcome.outcome.status.clone()),
                     version: event.version,
                     standard: event.standard,
+                    index_in_log: index_in_log as u64,
                     event: event.event,
-                    data: serde_json::to_string(&event.data).unwrap_or_default(),
+                    data:  event.data.to_string(),
                     related_receipt_id: outcome.receipt.receipt_id.to_string(),
                     related_receipt_receiver_id: outcome.receipt.receiver_id.to_string(),
                     related_receipt_predecessor_id: outcome.receipt.predecessor_id.to_string(),

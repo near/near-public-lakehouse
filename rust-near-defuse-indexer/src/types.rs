@@ -11,6 +11,7 @@ pub struct EventRow {
     pub execution_status: String,
     pub version: String,
     pub standard: String,
+    pub index_in_log: u64,
     pub event: String,
     pub data: String,
     pub related_receipt_id: String,
