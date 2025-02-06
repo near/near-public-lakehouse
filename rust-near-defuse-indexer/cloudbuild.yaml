@@ -1,0 +1,17 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - '-t'
+      - >-
+        gcr.io/intents-analytics-indexer/github.com/near/near-public-lakehouse:$COMMIT_SHA
+      - '-f'
+      - ./rust-near-defuse-indexer/Dockerfile
+      - rust-near-defuse-indexer/
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - >-
+        gcr.io/intents-analytics-indexer/github.com/near/near-public-lakehouse:$COMMIT_SHA
+options:
+  logging: CLOUD_LOGGING_ONLY
