@@ -52,23 +52,26 @@ fn parse_event(
 
     if log_trimmed.starts_with(EVENT_JSON_PREFIX) {
         if let Ok(event) = from_str::<EventJson>(&log_trimmed[EVENT_JSON_PREFIX.len()..]) {
-            if log_trimmed.contains("dip4") || log_trimmed.contains("nep245") {
-                println!("Event: {}", log_trimmed);
-                return Some(EventRow {
-                    block_height: header.height,
-                    block_timestamp: header.timestamp,
-                    block_hash: header.hash.to_string(),
-                    contract_id: outcome.execution_outcome.outcome.executor_id.to_string(),
-                    execution_status: parse_status(outcome.execution_outcome.outcome.status.clone()),
-                    version: event.version,
-                    standard: event.standard,
-                    index_in_log: index_in_log as u64,
-                    event: event.event,
-                    data:  event.data.to_string(),
-                    related_receipt_id: outcome.receipt.receipt_id.to_string(),
-                    related_receipt_receiver_id: outcome.receipt.receiver_id.to_string(),
-                    related_receipt_predecessor_id: outcome.receipt.predecessor_id.to_string(),
-                });
+            let contract_id = &outcome.execution_outcome.outcome.executor_id.to_string();
+            if contract_id == "intents.near" || contract_id == "defuse-alpha.near" {
+                if log_trimmed.contains("dip4") || log_trimmed.contains("nep245") {
+                    println!("Event: {}", log_trimmed);
+                    return Some(EventRow {
+                        block_height: header.height,
+                        block_timestamp: header.timestamp,
+                        block_hash: header.hash.to_string(),
+                        contract_id: contract_id.to_string(),
+                        execution_status: parse_status(outcome.execution_outcome.outcome.status.clone()),
+                        version: event.version,
+                        standard: event.standard,
+                        index_in_log: index_in_log as u64,
+                        event: event.event,
+                        data:  event.data.to_string(),
+                        related_receipt_id: outcome.receipt.receipt_id.to_string(),
+                        related_receipt_receiver_id: outcome.receipt.receiver_id.to_string(),
+                        related_receipt_predecessor_id: outcome.receipt.predecessor_id.to_string(),
+                    });
+                }
             }
         }
     }
