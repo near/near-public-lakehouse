@@ -82,6 +82,37 @@ The project is structured as follows:
 Here is the Clickhouse schema to run the indexer:
 
 ```sql
+CREATE TABLE defuse_assets (
+    blockchain          String COMMENT 'The blockchain',
+    contract_address    String COMMENT 'The contract address',
+    decimals            UInt64 COMMENT 'Decimals',
+    defuse_asset_id     String COMMENT 'The asset ID',
+    price               Float64 COMMENT 'The price',
+    price_updated_at    DateTime64(9, 'UTC') COMMENT 'The price updated timestamp',
+    symbol              String COMMENT 'The symbol'
+) ENGINE = ReplacingMergeTree
+PRIMARY KEY (defuse_asset_id, price_updated_at)
+ORDER BY (defuse_asset_id, price_updated_at);
+
+CREATE MATERIALIZED VIEW mv_defuse_assets
+REFRESH EVERY 1 DAY APPEND TO defuse_assets AS (
+    WITH json_rows AS (
+        SELECT 
+        arrayJoin(items) item
+        FROM url('https://api-mng-console.chaindefuser.com/api/tokens/', JSONEachRow)
+    )
+
+    SELECT 
+        item.blockchain blockchain
+        , item.contract_address contract_address
+        , item.decimals decimals
+        , item.defuse_asset_id defuse_asset_id
+        , item.price price
+        , item.price_updated_at price_updated_at
+        , item.symbol symbol
+    FROM json_rows
+);
+
 CREATE TABLE IF NOT EXISTS events
     (
         block_height                     UInt64 COMMENT 'The height of the block',
