@@ -136,8 +136,7 @@ CREATE TABLE IF NOT EXISTS events
     PRIMARY KEY (block_height, related_receipt_id)
     ORDER BY (block_height, related_receipt_id);
 
-
-CREATE TABLE IF NOT EXISTS nep_245_events
+CREATE TABLE IF NOT EXISTS silver_nep_245_events
     (
         block_height                     UInt64 COMMENT 'The height of the block',
         block_timestamp                  DateTime64(9, 'UTC') COMMENT 'The timestamp of the block in UTC',
@@ -156,15 +155,16 @@ CREATE TABLE IF NOT EXISTS nep_245_events
         token_ids                        Nullable(String) COMMENT 'The token IDs',
         amounts                          Nullable(String) COMMENT 'The amounts',
 
-        INDEX            mints_block_timestamp_minmax_idx block_timestamp TYPE minmax GRANULARITY 1,
-        INDEX            mints_contract_id_bloom_index contract_id TYPE bloom_filter() GRANULARITY 1,
-        INDEX            mints_related_receipt_id_bloom_index related_receipt_id TYPE bloom_filter() GRANULARITY 1,
-        INDEX            mints_related_receipt_receiver_id_bloom_index related_receipt_receiver_id TYPE bloom_filter() GRANULARITY 1,
+        INDEX            nep_245_block_timestamp_minmax_idx block_timestamp TYPE minmax GRANULARITY 1,
+        INDEX            nep_245_contract_id_bloom_index contract_id TYPE bloom_filter() GRANULARITY 1,
+        INDEX            nep_245_related_receipt_id_bloom_index related_receipt_id TYPE bloom_filter() GRANULARITY 1,
+        INDEX            nep_245_related_receipt_receiver_id_bloom_index related_receipt_receiver_id TYPE bloom_filter() GRANULARITY 1,
     ) ENGINE = ReplacingMergeTree
-    PRIMARY KEY (block_height, related_receipt_id)
-    ORDER BY (block_height, related_receipt_id);
+    PRIMARY KEY (block_height, related_receipt_id, event, old_owner_id, new_owner_id)
+    ORDER BY (block_height, related_receipt_id, event, old_owner_id, new_owner_id)
+settings allow_nullable_key=true;
 
-CREATE MATERIALIZED VIEW mv_nep_245_events TO nep_245_events AS
+CREATE MATERIALIZED VIEW mv_silver_nep_245_events TO silver_nep_245_events AS
 WITH decoded_events AS (
     SELECT
         block_height
@@ -180,7 +180,7 @@ WITH decoded_events AS (
         , related_receipt_receiver_id
         , arrayJoin(JSONExtractArrayRaw(data)) data_row
     FROM events
-    WHERE contract_id in ('defuse-alpha.near', 'intents.near')
+    WHERE block_timestamp >= '2025-02-12 01:00:00'
 )
 SELECT
     *  EXCEPT (data_row)
