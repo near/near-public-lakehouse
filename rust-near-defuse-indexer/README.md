@@ -219,8 +219,11 @@ CREATE TABLE IF NOT EXISTS silver_dip4_token_diff
         related_receipt_id               String COMMENT 'The execution outcome receipt ID',
         related_receipt_receiver_id      String COMMENT 'The destination account ID',
         related_receipt_predecessor_id   String COMMENT 'The account ID which issued a receipt. In case of a gas or deposit refund, the account ID is system',
-        account_id                       Nullable(String) COMMENT 'The token differential account ID',
-        diff                             Nullable(String) COMMENT 'The token differentials',
+        account_id                       String COMMENT 'The token differential account ID',
+        diff_positive_token              String COMMENT 'The positive token differential',
+        diff_positive_amount             Float64 COMMENT 'The positive amount differential',
+        diff_negative_token              String COMMENT 'The negative token differential',
+        diff_negative_amount             Float64 COMMENT 'The negative amount differential',
         intent_hash                      String COMMENT 'The hash of the intent',
         referral                         Nullable(String) COMMENT 'The referral of the intent',
 
@@ -242,10 +245,24 @@ CREATE MATERIALIZED VIEW mv_silver_dip4_token_diff TO silver_dip4_token_diff AS
         AND event = 'token_diff'
         -- timestamp threshold for new records
         -- previous records backfill can be done via https://clickhouse.com/docs/en/data-modeling/backfilling#timestamp-or-monotonically-increasing-column-available 
-        AND block_timestamp >= '2025-02-12 22:50:00'
+        AND block_timestamp >= '2025-02-12 22:55:00'
+    ),
+    parsed_json AS (
+        SELECT *
+            , COALESCE(JSON_VALUE(data_row, '$.account_id'), '') account_id
+            , COALESCE(JSON_VALUE(data_row, '$.diff'), '') diff
+            , COALESCE(JSON_VALUE(data_row, '$.intent_hash'), '') intent_hash
+            , COALESCE(JSON_VALUE(data_row, '$.referral'), '') referral
+        FROM decoded_events
+   ),
+    diff_kvs AS (
+        SELECT
+            diff
+            , arrayJoin(JSONExtractKeysAndValues(assumeNotNull(diff), 'Float64')) diff_kv
+            , *
+        FROM parsed_json
     )
-
-    SELECT
+    SELECT 
         block_height
         , block_timestamp
         , block_hash
@@ -257,11 +274,15 @@ CREATE MATERIALIZED VIEW mv_silver_dip4_token_diff TO silver_dip4_token_diff AS
         , related_receipt_id
         , related_receipt_predecessor_id
         , related_receipt_receiver_id
-        , COALESCE(JSON_VALUE(data_row, '$.account_id'), '') account_id
-        , COALESCE(JSON_VALUE(data_row, '$.diff'), '') diff
-        , COALESCE(JSON_VALUE(data_row, '$.intent_hash'), '') intent_hash
-        , COALESCE(JSON_VALUE(data_row, '$.referral'), '') referral
-    FROM decoded_events
+        , account_id
+        , IF (diff_kv.2 >= 0, diff_kv.1, '')  diff_positive_token
+        , IF (diff_kv.2 >= 0, diff_kv.2, 0)  diff_positive_amount
+        , IF (diff_kv.2 < 0, diff_kv.1, '')  diff_negative_token
+        , IF (diff_kv.2 < 0, diff_kv.2, 0)  diff_negative_amount
+        , intent_hash
+        , referral
+        
+    FROM diff_kvs
     settings function_json_value_return_type_allow_nullable=true, function_json_value_return_type_allow_complex=true;
 
 
