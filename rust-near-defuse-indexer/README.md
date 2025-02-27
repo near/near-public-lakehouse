@@ -447,4 +447,43 @@ CREATE MATERIALIZED VIEW silver_mv_dip4_fee_changed TO silver_dip4_fee_changed A
         , COALESCE(JSON_VALUE(data_row, '$.new_fee'), '') new_fee
     FROM decoded_events
     settings function_json_value_return_type_allow_nullable=true, function_json_value_return_type_allow_complex=true;
+
+CREATE VIEW gold_view_intents_metrics AS
+  with decoded as
+  (select distinct 
+    e.block_timestamp,
+    e.block_hash,
+    e.event,
+    e.memo,
+    e.old_owner_id,
+    e.new_owner_id,
+    e.token_id,
+    e.amount/pow(10,a.decimals) * a.price as usd_value, 
+    a.symbol, 
+    a.blockchain, 
+    d.referral
+  from silver_nep_245_events e
+      left join silver_dip4_token_diff d
+          on d.related_receipt_id = e.related_receipt_id
+      left join defuse_assets a
+          on e.block_timestamp::date = a.price_updated_at::date
+            and e.token_id = a.defuse_asset_id
+    where not(length(referral) = 0 and length(memo) = 0)
+    )
+
+  select
+    e.block_timestamp::date as day,
+    symbol,
+    coalesce(referral, 'Others') as referral,
+    blockchain,
+    sum(case when e.event = 'mt_transfer' then usd_value end) as transfer_volume,
+    sum(case when e.event = 'mt_mint' then usd_value end) as deposits,
+    sum(case when e.event = 'mt_burn' then usd_value end) * -1 as withdraws,
+    sum(case
+          when e.event = 'mt_mint' then usd_value
+          when e.event = 'mt_burn' then usd_value * -1 end) as netflow
+  from decoded
+  where symbol <> '' and blockchain <> ''
+  group by all
+  order by 1;
 ```
