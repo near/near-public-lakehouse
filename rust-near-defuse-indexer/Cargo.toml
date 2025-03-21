@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2021"
 rust-version = "1.76.0"
 
+[[bin]]
+name = "near-defuse-indexer"
+path = "src/main.rs"
+
 [dependencies]
 clickhouse = {version = "0.13.0", features = ["rustls-tls"] }
 serde = "1.0.106"
