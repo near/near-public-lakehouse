@@ -2,6 +2,7 @@ use crate::types::{EventJson, EventRow};
 use clickhouse::Client;
 use futures::StreamExt;
 use near_lake_framework::LakeConfig;
+use near_lake_framework::near_indexer_primitives::CryptoHash;
 use near_lake_framework::near_indexer_primitives::{self, StreamerMessage, views::ExecutionStatusView};
 use serde_json::from_str;
 use tokio_stream::wrappers::ReceiverStream;
@@ -25,14 +26,33 @@ async fn handle_streamer_message(message: StreamerMessage, client: &Client) {
         .shards
         .iter()
         .flat_map(|shard| {
-            shard.receipt_execution_outcomes.iter().flat_map(|outcome| {
+            let chunk = Option::as_ref(&shard.chunk).unwrap();
+            let header = message.block.header.clone();
+            
+            shard.receipt_execution_outcomes.iter().flat_map(move |outcome| {
+                let tx_hash = chunk
+                    .transactions
+                    .iter()
+                    .find(|tx| {
+                        tx.outcome
+                            .execution_outcome
+                            .outcome
+                            .receipt_ids
+                            .contains(&outcome.receipt.receipt_id)
+                    })
+                    .map(|tx| tx.transaction.hash)
+                    // NOTE: assuming that we have comprehensive consistent block data.
+                    .unwrap();
+
+                let header = header.clone();
+                
                 outcome
                     .execution_outcome
                     .outcome
                     .logs
                     .iter()
                     .enumerate()
-                    .filter_map(|(index_in_log, log)| parse_event(index_in_log, log, outcome, &message.block.header))
+                    .filter_map(move |(index_in_log, log)| parse_event(index_in_log, log, tx_hash, outcome, &header))
             })
         })
         .collect();
@@ -45,6 +65,7 @@ async fn handle_streamer_message(message: StreamerMessage, client: &Client) {
 fn parse_event(
     index_in_log: usize,
     log: &str,
+    tx_hash: CryptoHash,
     outcome: &near_indexer_primitives::IndexerExecutionOutcomeWithReceipt,
     header: &near_indexer_primitives::views::BlockHeaderView,
 ) -> Option<EventRow> {
@@ -70,6 +91,7 @@ fn parse_event(
                         related_receipt_id: outcome.receipt.receipt_id.to_string(),
                         related_receipt_receiver_id: outcome.receipt.receiver_id.to_string(),
                         related_receipt_predecessor_id: outcome.receipt.predecessor_id.to_string(),
+                        tx_hash: tx_hash.to_string(),
                     });
                 }
             }

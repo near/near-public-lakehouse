@@ -17,6 +17,7 @@ pub struct EventRow {
     pub related_receipt_id: String,
     pub related_receipt_receiver_id: String,
     pub related_receipt_predecessor_id: String,
+    pub tx_hash: String,
 }
 
 #[derive(Deserialize)]
