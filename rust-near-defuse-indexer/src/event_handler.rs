@@ -1,4 +1,4 @@
-use crate::types::{EventJson, EventRow};
+use crate::types::{EventJson, EventRow, ReceiptsCache, ReceiptsCacheArc, ReceiptOrDataId};
 use clickhouse::Client;
 use futures::StreamExt;
 use near_lake_framework::LakeConfig;
@@ -6,20 +6,25 @@ use near_lake_framework::near_indexer_primitives::CryptoHash;
 use near_lake_framework::near_indexer_primitives::{self, StreamerMessage, views::ExecutionStatusView};
 use serde_json::from_str;
 use tokio_stream::wrappers::ReceiverStream;
+use std::str::FromStr;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 const EVENT_JSON_PREFIX: &str = "EVENT_JSON:";
+const CACHE_SIZE: usize = 10000;
 
 pub async fn handle_stream(config: LakeConfig, client: Client) {
     let (_, stream) = near_lake_framework::streamer(config);
+    let receipts_cache = Arc::new(Mutex::new(ReceiptsCache::new(CACHE_SIZE)));
 
     let mut handlers = ReceiverStream::new(stream)
-        .map(|message| handle_streamer_message(message, &client))
+        .map(|message| handle_streamer_message(message, &client, receipts_cache.clone()))
         .buffer_unordered(1);
 
     while let Some(_) = handlers.next().await {}
 }
 
-async fn handle_streamer_message(message: StreamerMessage, client: &Client) {
+async fn handle_streamer_message(message: StreamerMessage, client: &Client, receipts_cache: ReceiptsCacheArc) {
     println!("Block: {}", message.block.header.height);
 
     let rows: Vec<EventRow> = message
@@ -29,30 +34,58 @@ async fn handle_streamer_message(message: StreamerMessage, client: &Client) {
             let chunk = Option::as_ref(&shard.chunk).unwrap();
             let header = message.block.header.clone();
             
+            let receipts_cache_clone = receipts_cache.clone();
             shard.receipt_execution_outcomes.iter().flat_map(move |outcome| {
-                let tx_hash = chunk
-                    .transactions
-                    .iter()
-                    .find(|tx| {
-                        tx.outcome
-                            .execution_outcome
-                            .outcome
-                            .receipt_ids
-                            .contains(&outcome.receipt.receipt_id)
-                    })
-                    .map(|tx| tx.transaction.hash)
-                    // NOTE: assuming that we have comprehensive consistent block data.
-                    .unwrap();
-
-                let header = header.clone();
+                let mut cache_lock = receipts_cache_clone.blocking_lock();
+                let receipt_id = ReceiptOrDataId::ReceiptId(outcome.receipt.receipt_id);
                 
+                let tx_hash = if let Some(cached_hash) = cache_lock.cache_get(&receipt_id).cloned() {
+                    cached_hash
+                } else {
+                    let hash = chunk
+                        .transactions
+                        .iter()
+                        .find(|tx| {
+                            tx.outcome
+                                .execution_outcome
+                                .outcome
+                                .receipt_ids
+                                .contains(&outcome.receipt.receipt_id)
+                        })
+                        .map(|tx| tx.transaction.hash);
+
+                    match hash {
+                        Some(h) => {
+                            let hash_str = h.to_string();
+                            cache_lock.cache_set(receipt_id, hash_str.clone());
+                            hash_str
+                        }
+                        None => {
+                            let hash_str = outcome.execution_outcome.id.to_string();
+                            cache_lock.cache_set(receipt_id, hash_str.clone());
+                            hash_str
+                        }
+                    }
+                };
+                
+                drop(cache_lock);
+                let header = header.clone();
+
                 outcome
                     .execution_outcome
                     .outcome
                     .logs
                     .iter()
                     .enumerate()
-                    .filter_map(move |(index_in_log, log)| parse_event(index_in_log, log, tx_hash, outcome, &header))
+                    .filter_map(move |(index_in_log, log)| 
+                        parse_event(
+                            index_in_log,
+                            log,
+                            CryptoHash::from_str(&tx_hash).unwrap(),
+                            outcome,
+                            &header
+                        )
+                    )
             })
         })
         .collect();
