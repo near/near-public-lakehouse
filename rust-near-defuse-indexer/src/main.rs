@@ -3,8 +3,6 @@ use std::env;
 use cached::SizedCache;
 use tokio::sync::Mutex;
 
-use near_lake_framework::LakeConfigBuilder;
-
 use crate::config::init_tracing;
 use crate::database::{get_last_height, init_clickhouse_client};
 
@@ -15,6 +13,7 @@ mod types;
 
 #[tokio::main]
 async fn main() -> Result<(), tokio::io::Error> {
+    dotenv::dotenv().ok();
     init_tracing();
 
     let client = init_clickhouse_client();
@@ -29,7 +28,14 @@ async fn main() -> Result<(), tokio::io::Error> {
 
     println!("Starting indexer at block height: {}", start_block);
 
-    let lake_config = LakeConfigBuilder::default()
+    // TODO: enable this after development and testing
+    // let lake_config = near_lake_framework::LakeConfigBuilder::default()
+    //     .mainnet()
+    //     .start_block_height(start_block)
+    //     .build()
+    //     .expect("Error creating NEAR Lake framework config");
+
+    let lake_config = near_lake_framework::FastNearConfigBuilder::default()
         .mainnet()
         .start_block_height(start_block)
         .build()

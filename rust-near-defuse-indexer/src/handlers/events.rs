@@ -27,10 +27,11 @@ pub async fn handle_events(
         })
         .collect();
 
-    if let Err(err) = crate::database::insert_rows(client, EVENT_CLICKHOUSE_TABLE, &rows).await {
-        eprintln!("Error inserting rows into Clickhouse: {}", err);
-        anyhow::bail!("Failed to insert rows into Clickhouse: {}", err)
-    }
+    // TODO: uncomment this after development and testing
+    // if let Err(err) = crate::database::insert_rows(client, EVENT_CLICKHOUSE_TABLE, &rows).await {
+    //     eprintln!("Error inserting rows into Clickhouse: {}", err);
+    //     anyhow::bail!("Failed to insert rows into Clickhouse: {}", err)
+    // }
     Ok(())
 }
 
@@ -49,7 +50,7 @@ fn parse_event(
             let contract_id = &outcome.execution_outcome.outcome.executor_id.to_string();
             if contract_id == "intents.near" || contract_id == "defuse-alpha.near" {
                 if log_trimmed.contains("dip4") || log_trimmed.contains("nep245") {
-                    println!("Event: {}", log_trimmed);
+                    // println!("Event: {}", log_trimmed);
                     return Some(EventRow {
                         block_height: header.height,
                         block_timestamp: header.timestamp,
@@ -74,7 +75,7 @@ fn parse_event(
     None
 }
 
-fn parse_status(status: near_indexer_primitives::views::ExecutionStatusView) -> String {
+pub(crate) fn parse_status(status: near_indexer_primitives::views::ExecutionStatusView) -> String {
     match status {
         near_indexer_primitives::views::ExecutionStatusView::SuccessReceiptId(_) => {
             "success_receipt_id".to_string()
