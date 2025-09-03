@@ -97,12 +97,12 @@ ORDER BY (defuse_asset_id, price_updated_at);
 CREATE MATERIALIZED VIEW mv_defuse_assets
 REFRESH EVERY 1 DAY APPEND TO defuse_assets AS (
     WITH json_rows AS (
-        SELECT 
+        SELECT
         arrayJoin(items) item
         FROM url('https://api-mng-console.chaindefuser.com/api/tokens/', JSONEachRow)
     )
 
-    SELECT 
+    SELECT
         item.blockchain blockchain
         , item.contract_address contract_address
         , item.decimals decimals
@@ -131,11 +131,56 @@ CREATE TABLE IF NOT EXISTS events
         INDEX            block_timestamp_minmax_idx block_timestamp TYPE minmax GRANULARITY 1,
         INDEX            contract_id_bloom_index contract_id TYPE bloom_filter() GRANULARITY 1,
         INDEX            related_receipt_id_bloom_index related_receipt_id TYPE bloom_filter() GRANULARITY 1,
-        INDEX            related_receipt_receiver_id_bloom_index related_receipt_receiver_id TYPE bloom_filter() GRANULARITY 1,
+        INDEX            related_receipt_receiver_id_bloom_index related_receipt_receiver_id TYPE bloom_filter() GRANULARITY 1
     ) ENGINE = ReplacingMergeTree
     PRIMARY KEY (block_height, related_receipt_id)
     ORDER BY (block_height, related_receipt_id);
 
+-- Transaction Table
+
+CREATE TABLE IF NOT EXISTS transactions (
+    block_height         UInt64 COMMENT 'The height of the block',
+    block_timestamp      DateTime64(9, 'UTC') COMMENT 'The timestamp of the block in UTC',
+    block_hash           String COMMENT 'The hash of the block',
+    transaction_hash     String COMMENT 'The transaction hash',
+    signer_id            String COMMENT 'The signer account ID',
+    receiver_id          String COMMENT 'The receiver account ID',
+    actions              String COMMENT 'JSON array of actions'
+) ENGINE = ReplacingMergeTree
+PRIMARY KEY (block_height, transaction_hash)
+ORDER BY (block_height, transaction_hash);
+
+-- Receipt Table
+
+CREATE TABLE IF NOT EXISTS receipts (
+    block_height         UInt64 COMMENT 'The height of the block',
+    block_timestamp      DateTime64(9, 'UTC') COMMENT 'The timestamp of the block in UTC',
+    block_hash           String COMMENT 'The hash of the block',
+    parent_transaction_hash String COMMENT 'The parent transaction hash',
+    receipt_id           String COMMENT 'The receipt ID',
+    receiver_id          String COMMENT 'The receiver account ID',
+    predecessor_id       String COMMENT 'The predecessor account ID',
+    actions              String COMMENT 'JSON array of actions'
+) ENGINE = ReplacingMergeTree
+PRIMARY KEY (block_height, receipt_id)
+ORDER BY (block_height, receipt_id);
+
+-- Execution Outcome Table
+
+CREATE TABLE IF NOT EXISTS execution_outcomes (
+    block_height         UInt64 COMMENT 'The height of the block',
+    block_timestamp      DateTime64(9, 'UTC') COMMENT 'The timestamp of the block in UTC',
+    block_hash           String COMMENT 'The hash of the block',
+    parent_transaction_hash String COMMENT 'The parent transaction hash',
+    executor_id          String COMMENT 'The executor account ID',
+    receipt_ids          Array(String) COMMENT 'Array of receipt IDs',
+    status               String COMMENT 'The execution status',
+    logs                 String COMMENT 'JSON array of logs',
+    tokens_burnt         String COMMENT 'Tokens burnt',
+    gas_burnt            UInt64 COMMENT 'Gas burnt'
+) ENGINE = ReplacingMergeTree
+PRIMARY KEY (block_height, parent_transaction_hash)
+ORDER BY (block_height, parent_transaction_hash);
 CREATE TABLE IF NOT EXISTS silver_nep_245_events
     (
         block_height                     UInt64 COMMENT 'The height of the block',
@@ -171,10 +216,10 @@ WITH decoded_events AS (
     FROM events
     WHERE standard = 'nep245'
     -- timestamp threshold for new records
-    -- previous records backfill can be done via https://clickhouse.com/docs/en/data-modeling/backfilling#timestamp-or-monotonically-increasing-column-available 
+    -- previous records backfill can be done via https://clickhouse.com/docs/en/data-modeling/backfilling#timestamp-or-monotonically-increasing-column-available
     AND block_timestamp >= '2025-02-12 22:10:00'
 ), tokens AS (
-    SELECT * 
+    SELECT *
         , COALESCE(JSON_VALUE(data_row, '$.memo'), '') memo
         , if( event = 'mt_transfer', JSON_VALUE(data_row, '$.old_owner_id'), JSON_VALUE(data_row, '$.owner_id')) old_owner_id
         , if( event = 'mt_transfer', JSON_VALUE(data_row, '$.new_owner_id'), JSON_VALUE(data_row, '$.owner_id')) new_owner_id
@@ -186,7 +231,7 @@ WITH decoded_events AS (
         , (arrayJoin(arrayZip(token_ids, amounts)) AS t).1 token_id, t.2 as amount
     FROM tokens
 )
-SELECT 
+SELECT
     block_height
     , block_timestamp
     , block_hash
@@ -201,8 +246,8 @@ SELECT
     , memo
     , old_owner_id
     , new_owner_id
-    , replaceAll(token_id, '"', '')  token_id 
-    , replaceAll(amount, '"', '')::Float64 amount 
+    , replaceAll(token_id, '"', '')  token_id
+    , replaceAll(amount, '"', '')::Float64 amount
 FROM tokens_flattened
 settings function_json_value_return_type_allow_nullable=true;
 
@@ -241,10 +286,10 @@ CREATE MATERIALIZED VIEW mv_silver_dip4_token_diff TO silver_dip4_token_diff AS
             , arrayJoin(JSONExtractArrayRaw(data)) data_row
         FROM events
         WHERE contract_id in ('defuse-alpha.near', 'intents.near')
-        AND standard = 'dip4' 
+        AND standard = 'dip4'
         AND event = 'token_diff'
         -- timestamp threshold for new records
-        -- previous records backfill can be done via https://clickhouse.com/docs/en/data-modeling/backfilling#timestamp-or-monotonically-increasing-column-available 
+        -- previous records backfill can be done via https://clickhouse.com/docs/en/data-modeling/backfilling#timestamp-or-monotonically-increasing-column-available
         AND block_timestamp >= '2025-02-12 22:55:00'
     ),
     parsed_json AS (
@@ -262,7 +307,7 @@ CREATE MATERIALIZED VIEW mv_silver_dip4_token_diff TO silver_dip4_token_diff AS
             , *
         FROM parsed_json
     )
-    SELECT 
+    SELECT
         block_height
         , block_timestamp
         , block_hash
@@ -281,7 +326,7 @@ CREATE MATERIALIZED VIEW mv_silver_dip4_token_diff TO silver_dip4_token_diff AS
         , IF (diff_kv.2 < 0, diff_kv.2, 0)  diff_negative_amount
         , intent_hash
         , referral
-        
+
     FROM diff_kvs
     settings function_json_value_return_type_allow_nullable=true, function_json_value_return_type_allow_complex=true;
 
@@ -317,10 +362,10 @@ WITH decoded_events AS (
         , data data_row
     FROM events
     WHERE contract_id in ('defuse-alpha.near', 'intents.near')
-    AND standard = 'dip4' 
+    AND standard = 'dip4'
     AND event in ('public_key_added', 'public_key_removed')
     -- timestamp threshold for new records
-    -- previous records backfill can be done via https://clickhouse.com/docs/en/data-modeling/backfilling#timestamp-or-monotonically-increasing-column-available 
+    -- previous records backfill can be done via https://clickhouse.com/docs/en/data-modeling/backfilling#timestamp-or-monotonically-increasing-column-available
     AND block_timestamp >= '2025-02-12 23:35:00'
 )
 
@@ -373,7 +418,7 @@ CREATE MATERIALIZED VIEW mv_silver_dip4_intents_executed TO silver_dip4_intents_
         WHERE contract_id in ('defuse-alpha.near', 'intents.near')
         AND standard = 'dip4' and event = 'intents_executed'
         -- timestamp threshold for new records
-        -- previous records backfill can be done via https://clickhouse.com/docs/en/data-modeling/backfilling#timestamp-or-monotonically-increasing-column-available 
+        -- previous records backfill can be done via https://clickhouse.com/docs/en/data-modeling/backfilling#timestamp-or-monotonically-increasing-column-available
         AND block_timestamp >= '2025-02-12 23:45:00'
     )
 
@@ -414,7 +459,7 @@ CREATE TABLE IF NOT EXISTS silver_dip4_fee_changed
         INDEX            dip4_fee_changed_block_timestamp_minmax_idx block_timestamp TYPE minmax GRANULARITY 1,
         INDEX            dip4_fee_changed_contract_id_bloom_index contract_id TYPE bloom_filter() GRANULARITY 1,
         INDEX            dip4_fee_changed_related_receipt_id_bloom_index related_receipt_id TYPE bloom_filter() GRANULARITY 1,
-        INDEX            dip4_fee_changed_related_receipt_receiver_id_bloom_index related_receipt_receiver_id TYPE bloom_filter() GRANULARITY 1,
+        INDEX            dip4_fee_changed_related_receipt_receiver_id_bloom_index related_receipt_receiver_id TYPE bloom_filter() GRANULARITY 1
     ) ENGINE = ReplacingMergeTree
     PRIMARY KEY (block_height, related_receipt_id)
     ORDER BY (block_height, related_receipt_id);
@@ -427,7 +472,7 @@ CREATE MATERIALIZED VIEW silver_mv_dip4_fee_changed TO silver_dip4_fee_changed A
         WHERE contract_id in ('defuse-alpha.near', 'intents.near')
         AND standard = 'dip4' and event = 'fee_changed'
         -- timestamp threshold for new records
-        -- previous records backfill can be done via https://clickhouse.com/docs/en/data-modeling/backfilling#timestamp-or-monotonically-increasing-column-available 
+        -- previous records backfill can be done via https://clickhouse.com/docs/en/data-modeling/backfilling#timestamp-or-monotonically-increasing-column-available
         AND block_timestamp >= '2025-02-12 23:50:00'
     )
 
@@ -450,7 +495,7 @@ CREATE MATERIALIZED VIEW silver_mv_dip4_fee_changed TO silver_dip4_fee_changed A
 
 CREATE VIEW gold_view_intents_metrics AS
   with decoded as
-  (select distinct 
+  (select distinct
     e.block_timestamp,
     e.block_hash,
     e.event,
@@ -458,9 +503,9 @@ CREATE VIEW gold_view_intents_metrics AS
     e.old_owner_id,
     e.new_owner_id,
     e.token_id,
-    e.amount/pow(10,a.decimals) * a.price as usd_value, 
-    a.symbol, 
-    a.blockchain, 
+    e.amount/pow(10,a.decimals) * a.price as usd_value,
+    a.symbol,
+    a.blockchain,
     d.referral
   from silver_nep_245_events e
       left join silver_dip4_token_diff d

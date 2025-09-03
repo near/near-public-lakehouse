@@ -16,11 +16,16 @@ pub async fn handle_execution_outcomes(
     let execution_outcomes =
         extract_execution_outcomes(message, receipts_cache_arc.clone()).await?;
 
-    // TODO: uncomment this after development and testing
-    // if let Err(err) = crate::database::insert_rows(client, EXECUTION_OUTCOMES_CLICKHOUSE_TABLE, &execution_outcomes).await {
-    //     eprintln!("Error inserting rows into Clickhouse: {}", err);
-    //     anyhow::bail!("Failed to insert rows into Clickhouse: {}", err)
-    // }
+    if let Err(err) = crate::database::insert_rows(
+        client,
+        EXECUTION_OUTCOMES_CLICKHOUSE_TABLE,
+        &execution_outcomes,
+    )
+    .await
+    {
+        eprintln!("Error inserting rows into Clickhouse: {}", err);
+        anyhow::bail!("Failed to insert rows into Clickhouse: {}", err)
+    }
 
     Ok(())
 }
@@ -46,7 +51,7 @@ async fn extract_execution_outcomes(
                     parent_transaction_hash: parent_tx_hash.clone(),
                     executor_id: outcome.execution_outcome.outcome.executor_id.to_string(),
                     status: parse_status(outcome.execution_outcome.outcome.status.clone()),
-                    logs: serde_json::json!(outcome.execution_outcome.outcome.logs),
+                    logs: serde_json::to_string(&outcome.execution_outcome.outcome.logs).unwrap(),
                     tokens_burnt: outcome.execution_outcome.outcome.tokens_burnt.to_string(),
                     gas_burnt: outcome.execution_outcome.outcome.gas_burnt,
                     receipt_ids: outcome.execution_outcome.outcome.receipt_ids.iter().map(|id| id.to_string()).collect(),

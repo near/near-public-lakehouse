@@ -13,11 +13,12 @@ pub async fn handle_receipts(
 ) -> anyhow::Result<()> {
     let receipts = extract_receipts(message, receipts_cache_arc.clone()).await?;
 
-    // TODO: uncomment this after development and testing
-    // if let Err(err) = crate::database::insert_rows(client, RECEIPTS_CLICKHOUSE_TABLE, &receipts).await {
-    //     eprintln!("Error inserting rows into Clickhouse: {}", err);
-    //     anyhow::bail!("Failed to insert rows into Clickhouse: {}", err)
-    // }
+    if let Err(err) =
+        crate::database::insert_rows(client, RECEIPTS_CLICKHOUSE_TABLE, &receipts).await
+    {
+        eprintln!("Error inserting rows into Clickhouse: {}", err);
+        anyhow::bail!("Failed to insert rows into Clickhouse: {}", err)
+    }
 
     Ok(())
 }
@@ -47,13 +48,15 @@ async fn extract_receipts(
                     predecessor_id: receipt.predecessor_id.clone().to_string(),
                     actions: match receipt.receipt {
                         near_primitives::views::ReceiptEnumView::Action { ref actions, .. } => {
-                            serde_json::json!(actions.iter().map(|action| { types::Action::from(action) }).collect::<Vec<types::Action>>())
+                            serde_json::to_string(
+                                &actions.iter().map(|action| types::Action::from(action)).collect::<Vec<types::Action>>()
+                            ).unwrap()
                         },
                         near_primitives::views::ReceiptEnumView::Data { ref data, .. } => {
-                            serde_json::json!(data)
+                            serde_json::to_string(data).unwrap()
                         },
                         near_primitives::views::ReceiptEnumView::GlobalContractDistribution { .. } => {
-                            serde_json::json!({})
+                            "".to_string()
                         },
                     },
                 })

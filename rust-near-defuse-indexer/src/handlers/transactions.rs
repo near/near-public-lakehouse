@@ -13,11 +13,12 @@ pub async fn handle_transactions(
 ) -> anyhow::Result<()> {
     let transactions = extract_transactions(message, receipts_cache_arc.clone()).await?;
 
-    // TODO: uncomment this after development and testing
-    // if let Err(err) = crate::database::insert_rows(client, TRANSACTIONS_CLICKHOUSE_TABLE, &transactions).await {
-    //     eprintln!("Error inserting rows into Clickhouse: {}", err);
-    //     anyhow::bail!("Failed to insert rows into Clickhouse: {}", err)
-    // }
+    if let Err(err) =
+        crate::database::insert_rows(client, TRANSACTIONS_CLICKHOUSE_TABLE, &transactions).await
+    {
+        eprintln!("Error inserting rows into Clickhouse: {}", err);
+        anyhow::bail!("Failed to insert rows into Clickhouse: {}", err)
+    }
     Ok(())
 }
 
@@ -67,12 +68,14 @@ pub async fn extract_transactions(
                     transaction_hash: transaction_hash,
                     signer_id: tx.transaction.signer_id.to_string(),
                     receiver_id: tx.transaction.receiver_id.to_string(),
-                    actions: serde_json::json!(tx
-                        .transaction
-                        .actions
-                        .iter()
-                        .map(|action| { types::Action::from(action) })
-                        .collect::<Vec<types::Action>>()),
+                    actions: serde_json::to_string(
+                        &tx.transaction
+                            .actions
+                            .iter()
+                            .map(|action| types::Action::from(action))
+                            .collect::<Vec<types::Action>>(),
+                    )
+                    .unwrap(),
                 })
             } else {
                 None

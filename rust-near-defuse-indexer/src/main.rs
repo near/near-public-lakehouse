@@ -12,7 +12,7 @@ mod handlers;
 mod types;
 
 #[tokio::main]
-async fn main() -> Result<(), tokio::io::Error> {
+async fn main() -> anyhow::Result<()> {
     dotenv::dotenv().ok();
     init_tracing();
 
@@ -44,7 +44,7 @@ async fn main() -> Result<(), tokio::io::Error> {
     let receipts_cache_arc: types::ReceiptsCacheArc =
         std::sync::Arc::new(Mutex::new(SizedCache::with_size(100_000)));
 
-    handlers::handle_stream(lake_config, client, receipts_cache_arc).await;
+    handlers::handle_stream(lake_config, client, receipts_cache_arc).await?;
 
     Ok(())
 }

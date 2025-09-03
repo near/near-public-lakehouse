@@ -52,7 +52,7 @@ pub struct TransactionRow {
     pub transaction_hash: String,
     pub signer_id: String,
     pub receiver_id: String,
-    pub actions: serde_json::Value,
+    pub actions: String,
 }
 
 #[derive(Row, Serialize)]
@@ -64,7 +64,7 @@ pub struct ReceiptRow {
     pub receipt_id: String,
     pub receiver_id: String,
     pub predecessor_id: String,
-    pub actions: serde_json::Value,
+    pub actions: String,
 }
 
 #[derive(Row, Serialize)]
@@ -76,7 +76,7 @@ pub struct ExecutionOutcomeRow {
     pub executor_id: String,
     pub receipt_ids: Vec<String>,
     pub status: String,
-    pub logs: serde_json::Value,
+    pub logs: String,
     pub tokens_burnt: String,
     pub gas_burnt: u64,
 }

@@ -36,8 +36,8 @@ pub async fn insert_rows(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut insert = client.insert(table).unwrap();
     for row in rows {
-        insert.write(row).await.unwrap();
+        insert.write(row).await?;
     }
-    insert.end().await.unwrap();
+    insert.end().await?;
     Ok(())
 }

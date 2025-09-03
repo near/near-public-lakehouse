@@ -27,11 +27,10 @@ pub async fn handle_events(
         })
         .collect();
 
-    // TODO: uncomment this after development and testing
-    // if let Err(err) = crate::database::insert_rows(client, EVENT_CLICKHOUSE_TABLE, &rows).await {
-    //     eprintln!("Error inserting rows into Clickhouse: {}", err);
-    //     anyhow::bail!("Failed to insert rows into Clickhouse: {}", err)
-    // }
+    if let Err(err) = crate::database::insert_rows(client, EVENT_CLICKHOUSE_TABLE, &rows).await {
+        eprintln!("Error inserting rows into Clickhouse: {}", err);
+        anyhow::bail!("Failed to insert rows into Clickhouse: {}", err)
+    }
     Ok(())
 }
 
