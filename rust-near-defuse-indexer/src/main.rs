@@ -1,14 +1,17 @@
-mod config;
-mod database;
-mod event_handler;
-mod types;
+use std::env;
+
+use cached::SizedCache;
+use tokio::sync::Mutex;
+
+use near_lake_framework::LakeConfigBuilder;
 
 use crate::config::init_tracing;
 use crate::database::{get_last_height, init_clickhouse_client};
-use crate::event_handler::handle_stream;
 
-use near_lake_framework::LakeConfigBuilder;
-use std::env;
+mod config;
+mod database;
+mod handlers;
+mod types;
 
 #[tokio::main]
 async fn main() -> Result<(), tokio::io::Error> {
@@ -23,7 +26,7 @@ async fn main() -> Result<(), tokio::io::Error> {
 
     let last_height = get_last_height(&client).await.unwrap_or(0);
     let start_block = block_height.max(last_height + 1);
-    
+
     println!("Starting indexer at block height: {}", start_block);
 
     let lake_config = LakeConfigBuilder::default()
@@ -32,7 +35,10 @@ async fn main() -> Result<(), tokio::io::Error> {
         .build()
         .expect("Error creating NEAR Lake framework config");
 
-    handle_stream(lake_config, client).await;
+    let receipts_cache_arc: types::ReceiptsCacheArc =
+        std::sync::Arc::new(Mutex::new(SizedCache::with_size(100_000)));
+
+    handlers::handle_stream(lake_config, client, receipts_cache_arc).await;
 
     Ok(())
 }
